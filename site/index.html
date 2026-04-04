@@ -127,20 +127,29 @@
         line-height: 1.45;
       }
 
-      .progress-track {
-        height: 0.35rem;
-        width: 100%;
-        overflow: hidden;
+      .live-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.55rem;
         border-radius: 9999px;
-        background: rgba(23, 23, 20, 0.09);
+        border: 1px solid rgba(23, 23, 20, 0.08);
+        background: rgba(255, 255, 252, 0.8);
+        padding: 0.5rem 0.85rem;
+        font-size: 0.82rem;
+        font-weight: 700;
+        letter-spacing: -0.01em;
+        color: rgba(23, 23, 20, 0.72);
       }
 
-      .progress-fill {
-        height: 100%;
-        width: 0%;
+      .live-dot {
+        width: 0.5rem;
+        height: 0.5rem;
         border-radius: 9999px;
-        background: #171714;
-        transition: width 900ms linear;
+        background: #1db954;
+      }
+
+      .live-chip.is-active .live-dot {
+        animation: pulseSoft 1.2s ease-in-out infinite;
       }
 
       .spotify-btn {
@@ -200,6 +209,10 @@
           </div>
 
           <div class="mt-6 space-y-2">
+            <div id="live-chip" hidden class="live-chip">
+              <span class="live-dot" aria-hidden="true"></span>
+              <span id="live-chip-label">Now Playing</span>
+            </div>
             <h1 id="track-title" class="title-text text-3xl font-extrabold sm:text-[2.6rem]">
               Loading current track...
             </h1>
@@ -210,16 +223,6 @@
           </div>
 
           <p id="track-message" hidden class="meta-text mt-4 text-sm text-base-content/62"></p>
-
-          <div id="progress-wrap" hidden class="mt-5">
-            <div class="progress-track">
-              <div id="progress-fill" class="progress-fill"></div>
-            </div>
-            <div class="mt-2 flex items-center justify-between text-[0.82rem] font-medium text-base-content/48">
-              <span id="progress-current">0:00</span>
-              <span id="progress-total">0:00</span>
-            </div>
-          </div>
 
           <div class="mt-6">
             <a
@@ -262,25 +265,17 @@
         panel: document.getElementById("panel"),
         cover: document.getElementById("cover-image"),
         coverFallback: document.getElementById("cover-fallback"),
+        liveChip: document.getElementById("live-chip"),
+        liveChipLabel: document.getElementById("live-chip-label"),
         title: document.getElementById("track-title"),
         artist: document.getElementById("track-artist"),
         album: document.getElementById("track-album"),
         message: document.getElementById("track-message"),
-        progressWrap: document.getElementById("progress-wrap"),
-        progressFill: document.getElementById("progress-fill"),
-        progressCurrent: document.getElementById("progress-current"),
-        progressTotal: document.getElementById("progress-total"),
         spotifyLink: document.getElementById("spotify-link"),
       };
-      let progressTimer = null;
 
       function setPanelReady() {
         els.panel.classList.add("is-ready");
-      }
-
-      function setStatus(state) {
-        document.documentElement.dataset.playState =
-          (stateStyles[state] || stateStyles.loading).label.toLowerCase();
       }
 
       function formatTime(isoString) {
@@ -297,69 +292,31 @@
         }).format(date);
       }
 
-      function formatClock(milliseconds) {
-        const totalSeconds = Math.max(0, Math.floor(milliseconds / 1000));
-        const minutes = Math.floor(totalSeconds / 60);
-        const seconds = totalSeconds % 60;
-        return minutes + ":" + String(seconds).padStart(2, "0");
-      }
-
       function setMessage(text) {
         const value = (text || "").trim();
         els.message.textContent = value;
         els.message.hidden = value === "";
       }
 
-      function clearProgressTimer() {
-        if (progressTimer !== null) {
-          window.clearInterval(progressTimer);
-          progressTimer = null;
-        }
-      }
+      function setPlaybackChip(state) {
+        const labels = {
+          loading: "Loading",
+          playing: "Now Playing",
+          paused: "Paused",
+          idle: "Idle",
+          setup_required: "Setup Required",
+          error: "Unavailable",
+        };
 
-      function hideProgress() {
-        clearProgressTimer();
-        els.progressWrap.hidden = true;
-        els.progressFill.style.width = "0%";
-        els.progressCurrent.textContent = "0:00";
-        els.progressTotal.textContent = "0:00";
-      }
-
-      function renderProgress(payload) {
-        clearProgressTimer();
-
-        const duration = Number(payload.duration_ms);
-        const baseProgress = Number(payload.progress_ms);
-        const generatedAt = Date.parse(payload.generated_at || "");
-        const canRender =
-          Number.isFinite(duration) &&
-          duration > 0 &&
-          Number.isFinite(baseProgress) &&
-          baseProgress >= 0;
-
-        if (!canRender) {
-          hideProgress();
+        if (state === "idle" || state === "error") {
+          els.liveChip.hidden = true;
+          els.liveChip.classList.remove("is-active");
           return;
         }
 
-        els.progressWrap.hidden = false;
-        els.progressTotal.textContent = formatClock(duration);
-
-        function paint() {
-          let progress = baseProgress;
-          if (payload.is_playing && Number.isFinite(generatedAt)) {
-            progress += Date.now() - generatedAt;
-          }
-          progress = Math.max(0, Math.min(duration, progress));
-          els.progressCurrent.textContent = formatClock(progress);
-          els.progressFill.style.width = ((progress / duration) * 100).toFixed(3) + "%";
-        }
-
-        paint();
-
-        if (payload.is_playing && baseProgress < duration) {
-          progressTimer = window.setInterval(paint, 1000);
-        }
+        els.liveChip.hidden = false;
+        els.liveChipLabel.textContent = labels[state] || "Now Playing";
+        els.liveChip.classList.toggle("is-active", state === "playing");
       }
 
       function disableSpotifyLink() {
@@ -377,7 +334,7 @@
       function renderFallback(payload) {
         const state = payload.state || "idle";
 
-        setStatus(state);
+        setPlaybackChip(state);
         els.cover.hidden = true;
         els.coverFallback.hidden = false;
         els.title.textContent =
@@ -386,19 +343,17 @@
           state === "paused" ? "Playback is paused right now." : "Nothing is playing right now.";
         els.album.textContent = "";
         setMessage(state === "error" ? "" : payload.message || formatTime(payload.generated_at));
-        hideProgress();
         disableSpotifyLink();
         document.title = "spotify247 | Now Playing";
         setPanelReady();
       }
 
       function renderTrack(payload) {
-        setStatus(payload.is_playing ? "playing" : "paused");
+        setPlaybackChip(payload.is_playing ? "playing" : "paused");
         els.title.textContent = payload.title || "Unknown track";
         els.artist.textContent = payload.artist_line || "Unknown artist";
         els.album.textContent = payload.album ? "Album: " + payload.album : "";
         setMessage(payload.message || "Updated " + formatTime(payload.generated_at));
-        renderProgress(payload);
         document.title = (payload.title || "Now Playing") + " | spotify247";
 
         if (payload.artwork_url) {
@@ -420,7 +375,7 @@
       }
 
       async function loadNowPlaying() {
-        setStatus("loading");
+        setPlaybackChip("loading");
 
         try {
           const response = await fetch("./now-playing.json?ts=" + Date.now(), {
