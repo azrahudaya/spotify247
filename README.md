@@ -48,6 +48,25 @@ Telegram
 - Control playback remotely from Telegram
 - Search and switch tracks without SSH access
 
+## GitHub Pages Now Playing
+
+This repo also includes a lightweight static now-playing page for GitHub Pages.
+
+- page source: `site/index.html`
+- data source: `site/now-playing.json`
+- generator: `scripts/generate_now_playing.py`
+- workflow: `.github/workflows/deploy-now-playing.yml`
+
+To enable it:
+
+1. open your repository `Settings > Pages`
+2. set the source to `GitHub Actions`
+3. add repository secrets for `SPOTIFY_CLIENT_ID`, `SPOTIFY_CLIENT_SECRET`, and `SPOTIFY_REFRESH_TOKEN`
+4. optionally add `SPOTIFY_MARKET`
+5. run the `Deploy spotify247 now-playing page` workflow
+
+Important: this GitHub Pages version is near-live, not real-time. The page is refreshed by GitHub Actions on a schedule, so track updates are not instant.
+
 ## Requirements
 
 - Ubuntu 22.04 or 24.04

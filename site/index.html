@@ -1,0 +1,391 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>spotify247 | Now Playing</title>
+    <meta
+      name="description"
+      content="spotify247 shows the current Spotify track from a self-hosted Ubuntu VPS player."
+    />
+    <meta
+      name="keywords"
+      content="spotify247, spotify now playing, github pages, spotify telegram bot, spotifyd, ubuntu vps"
+    />
+    <meta name="theme-color" content="#1f1f1b" />
+    <meta property="og:title" content="spotify247 | Now Playing" />
+    <meta
+      property="og:description"
+      content="A lightweight now playing page for Spotify, powered by spotify247."
+    />
+    <meta property="og:type" content="website" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      href="https://cdn.jsdelivr.net/npm/daisyui@5"
+      rel="stylesheet"
+      type="text/css"
+    />
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <style>
+      :root {
+        color-scheme: light;
+      }
+
+      body {
+        font-family: "Plus Jakarta Sans", sans-serif;
+        min-height: 100vh;
+        background: #f3f1eb;
+        color: #171714;
+        letter-spacing: -0.012em;
+        line-height: 1.5;
+      }
+
+      .shell {
+        position: relative;
+      }
+
+      .shell-body {
+        opacity: 0;
+        transform: translateY(10px);
+        transition:
+          opacity 360ms ease,
+          transform 360ms ease;
+      }
+
+      .shell.is-ready .shell-body {
+        opacity: 1;
+        transform: translateY(0);
+      }
+
+      .loader {
+        position: absolute;
+        inset: 0;
+        display: grid;
+        place-items: center;
+        background: rgba(243, 241, 235, 0.92);
+        transition:
+          opacity 280ms ease,
+          visibility 280ms ease;
+        z-index: 10;
+      }
+
+      .shell.is-ready .loader {
+        opacity: 0;
+        visibility: hidden;
+      }
+
+      .loader-stack {
+        display: grid;
+        justify-items: center;
+        gap: 1rem;
+      }
+
+      .loader-ring {
+        width: 2.75rem;
+        height: 2.75rem;
+        border-radius: 9999px;
+        border: 2px solid rgba(23, 23, 20, 0.12);
+        border-top-color: #1db954;
+        animation: spin 900ms linear infinite;
+      }
+
+      .loader-text {
+        color: rgba(23, 23, 20, 0.58);
+        font-size: 0.95rem;
+        font-weight: 600;
+        letter-spacing: -0.01em;
+      }
+
+      .cover-wrap {
+        border-radius: 1.75rem;
+        overflow: hidden;
+        background: #1db954;
+        box-shadow: 0 18px 40px rgba(18, 18, 16, 0.16);
+      }
+
+      .cover-fallback {
+        background: #1db954;
+      }
+
+      .title-text {
+        letter-spacing: -0.045em;
+        line-height: 1.04;
+      }
+
+      .artist-text {
+        letter-spacing: -0.018em;
+        line-height: 1.3;
+      }
+
+      .meta-text {
+        letter-spacing: -0.012em;
+        line-height: 1.45;
+      }
+
+      .status-dot {
+        width: 0.5rem;
+        height: 0.5rem;
+        border-radius: 9999px;
+        background: currentColor;
+      }
+
+      .status-live .status-dot {
+        animation: pulseSoft 1.4s ease-in-out infinite;
+      }
+
+      .spotify-btn {
+        transition:
+          transform 180ms ease,
+          box-shadow 180ms ease,
+          background-color 180ms ease;
+      }
+
+      .spotify-btn:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 12px 28px rgba(29, 185, 84, 0.18);
+      }
+
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+
+      @keyframes pulseSoft {
+        0%,
+        100% {
+          opacity: 0.45;
+          transform: scale(0.96);
+        }
+        50% {
+          opacity: 1;
+          transform: scale(1);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="mx-auto grid min-h-screen max-w-md place-items-center px-6 py-12">
+      <section id="panel" class="shell w-full">
+        <div class="loader" id="loader" aria-live="polite">
+          <div class="loader-stack">
+            <div class="loader-ring" aria-hidden="true"></div>
+            <p class="loader-text">Loading current track</p>
+          </div>
+        </div>
+
+        <div class="shell-body">
+          <div class="mb-5 flex items-center justify-between gap-3">
+            <p class="text-sm font-semibold text-base-content/55">spotify247</p>
+            <div id="status-wrap" class="inline-flex items-center gap-2 rounded-full border border-base-300 bg-base-100 px-3 py-1.5 text-sm font-semibold text-base-content/70">
+              <span class="status-dot" aria-hidden="true"></span>
+              <span id="status-label">Loading</span>
+            </div>
+          </div>
+
+          <div class="cover-wrap aspect-square rounded-[1.75rem]">
+            <img
+              id="cover-image"
+              src=""
+              alt="Album cover"
+              class="hidden h-full w-full object-cover"
+            />
+            <div
+              id="cover-fallback"
+              class="cover-fallback h-full w-full"
+            ></div>
+          </div>
+
+          <div class="mt-6 space-y-2">
+            <h1 id="track-title" class="title-text text-3xl font-extrabold sm:text-[2.6rem]">
+              Loading current track...
+            </h1>
+            <p id="track-artist" class="artist-text text-lg font-medium text-base-content/72">
+              Please wait a moment.
+            </p>
+            <p id="track-album" class="meta-text text-sm text-base-content/50"></p>
+          </div>
+
+          <p id="track-message" hidden class="meta-text mt-4 text-sm text-base-content/62"></p>
+
+          <div class="mt-6">
+            <a
+              id="spotify-link"
+              href="#"
+              target="_blank"
+              rel="noreferrer"
+              class="spotify-btn btn btn-success h-12 w-full rounded-2xl text-[0.95rem] font-semibold"
+            >
+              Open in Spotify
+            </a>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <script>
+      const stateStyles = {
+        loading: {
+          label: "Loading",
+          classes: "text-base-content/70 border-base-300 bg-base-100",
+        },
+        playing: {
+          label: "Playing",
+          classes: "status-live text-success border-success/20 bg-success/8",
+        },
+        paused: {
+          label: "Paused",
+          classes: "text-warning border-warning/20 bg-warning/8",
+        },
+        idle: {
+          label: "Idle",
+          classes: "text-base-content/65 border-base-300 bg-base-100",
+        },
+        setup_required: {
+          label: "Setup",
+          classes: "text-info border-info/20 bg-info/8",
+        },
+        error: {
+          label: "Error",
+          classes: "text-error border-error/20 bg-error/8",
+        },
+      };
+
+      const els = {
+        panel: document.getElementById("panel"),
+        statusWrap: document.getElementById("status-wrap"),
+        statusLabel: document.getElementById("status-label"),
+        cover: document.getElementById("cover-image"),
+        coverFallback: document.getElementById("cover-fallback"),
+        title: document.getElementById("track-title"),
+        artist: document.getElementById("track-artist"),
+        album: document.getElementById("track-album"),
+        message: document.getElementById("track-message"),
+        spotifyLink: document.getElementById("spotify-link"),
+      };
+
+      function setPanelReady() {
+        els.panel.classList.add("is-ready");
+      }
+
+      function setStatus(state) {
+        const config = stateStyles[state] || stateStyles.loading;
+        els.statusWrap.className =
+          "inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-sm font-semibold " +
+          config.classes;
+        els.statusLabel.textContent = config.label;
+      }
+
+      function formatTime(isoString) {
+        if (!isoString) {
+          return "";
+        }
+        const date = new Date(isoString);
+        if (Number.isNaN(date.getTime())) {
+          return isoString;
+        }
+        return new Intl.DateTimeFormat(undefined, {
+          dateStyle: "medium",
+          timeStyle: "short",
+        }).format(date);
+      }
+
+      function setMessage(text) {
+        const value = (text || "").trim();
+        els.message.textContent = value;
+        els.message.hidden = value === "";
+      }
+
+      function disableSpotifyLink() {
+        els.spotifyLink.classList.add("btn-disabled");
+        els.spotifyLink.setAttribute("aria-disabled", "true");
+        els.spotifyLink.removeAttribute("href");
+      }
+
+      function enableSpotifyLink(url) {
+        els.spotifyLink.href = url;
+        els.spotifyLink.classList.remove("btn-disabled");
+        els.spotifyLink.removeAttribute("aria-disabled");
+      }
+
+      function renderFallback(payload) {
+        const state = payload.state || "idle";
+
+        setStatus(state);
+        els.cover.hidden = true;
+        els.coverFallback.hidden = false;
+        els.title.textContent =
+          state === "setup_required" ? "Connect Spotify secrets" : "No live track available";
+        els.artist.textContent =
+          state === "paused" ? "Playback is paused right now." : "Nothing is playing right now.";
+        els.album.textContent = "";
+        setMessage(state === "error" ? "" : payload.message || formatTime(payload.generated_at));
+        disableSpotifyLink();
+        document.title = "spotify247 | Now Playing";
+        setPanelReady();
+      }
+
+      function renderTrack(payload) {
+        setStatus(payload.is_playing ? "playing" : "paused");
+        els.title.textContent = payload.title || "Unknown track";
+        els.artist.textContent = payload.artist_line || "Unknown artist";
+        els.album.textContent = payload.album ? "Album: " + payload.album : "";
+        setMessage(payload.message || "Updated " + formatTime(payload.generated_at));
+        document.title = (payload.title || "Now Playing") + " | spotify247";
+
+        if (payload.artwork_url) {
+          els.cover.src = payload.artwork_url;
+          els.cover.hidden = false;
+          els.coverFallback.hidden = true;
+        } else {
+          els.cover.hidden = true;
+          els.coverFallback.hidden = false;
+        }
+
+        if (payload.track_url) {
+          enableSpotifyLink(payload.track_url);
+        } else {
+          disableSpotifyLink();
+        }
+
+        setPanelReady();
+      }
+
+      async function loadNowPlaying() {
+        setStatus("loading");
+
+        try {
+          const response = await fetch("./now-playing.json?ts=" + Date.now(), {
+            cache: "no-store",
+          });
+          if (!response.ok) {
+            throw new Error("HTTP " + response.status);
+          }
+
+          const payload = await response.json();
+          if (payload.state === "playing" || payload.state === "paused") {
+            renderTrack(payload);
+            return;
+          }
+
+          renderFallback(payload);
+        } catch (error) {
+          console.error("Could not load now-playing.json.", error);
+          renderFallback({
+            state: "error",
+            message: "",
+            generated_at: null,
+          });
+        }
+      }
+
+      loadNowPlaying();
+      setInterval(loadNowPlaying, 60000);
+    </script>
+  </body>
+</html>

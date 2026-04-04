@@ -1,0 +1,22 @@
+{
+  "project": "spotify247",
+  "state": "setup_required",
+  "message": "Add GitHub Actions secrets for SPOTIFY_CLIENT_ID, SPOTIFY_CLIENT_SECRET, and SPOTIFY_REFRESH_TOKEN.",
+  "missing": [
+    "SPOTIFY_CLIENT_ID",
+    "SPOTIFY_CLIENT_SECRET",
+    "SPOTIFY_REFRESH_TOKEN"
+  ],
+  "generated_at": "2026-04-04T11:03:56Z",
+  "is_playing": false,
+  "title": null,
+  "artists": [],
+  "artist_line": null,
+  "album": null,
+  "artwork_url": null,
+  "track_url": null,
+  "track_id": null,
+  "progress_ms": null,
+  "duration_ms": null,
+  "device_name": null
+}
