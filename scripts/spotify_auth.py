@@ -41,20 +41,20 @@ def main() -> int:
     )
     authorize_url = f"{AUTH_URL}?{query}"
 
-    print("\n1. Buka URL ini di browser lalu login dengan akun Spotify yang sama dengan spotifyd:\n")
+    print("\n1. Open this URL in a browser and sign in with the same Spotify account used by spotifyd:\n")
     print(authorize_url)
     print(
-        "\n2. Setelah redirect, copy full URL hasil redirect ke sini.\n"
-        "   Contoh: http://127.0.0.1:8888/callback?code=...&state=...\n"
+        "\n2. After the redirect, paste the full redirect URL here.\n"
+        "   Example: http://127.0.0.1:8888/callback?code=...&state=...\n"
     )
     redirect_response = input("Paste redirect URL: ").strip()
     if not redirect_response:
-        print("Redirect URL wajib diisi.", file=sys.stderr)
+        print("Redirect URL is required.", file=sys.stderr)
         return 1
 
     code, returned_state = _extract_code_and_state(redirect_response)
     if returned_state and returned_state != state:
-        print("State OAuth tidak cocok. Ulangi flow auth.", file=sys.stderr)
+        print("OAuth state mismatch. Run the auth flow again.", file=sys.stderr)
         return 1
 
     response = requests.post(
@@ -71,17 +71,17 @@ def main() -> int:
 
     if response.status_code != 200:
         message = payload.get("error_description") or payload.get("error") or response.text
-        print(f"Token exchange gagal: {message}", file=sys.stderr)
+        print(f"Token exchange failed: {message}", file=sys.stderr)
         return 1
 
     refresh_token = payload.get("refresh_token")
     if not refresh_token:
-        print("Spotify tidak mengembalikan refresh token.", file=sys.stderr)
+        print("Spotify did not return a refresh token.", file=sys.stderr)
         return 1
 
-    print("\nSimpan nilai ini ke file .env kamu:\n")
+    print("\nAdd this value to your .env file:\n")
     print(f"SPOTIFY_REFRESH_TOKEN={refresh_token}")
-    print("\nScope yang dipakai:")
+    print("\nScopes used:")
     for scope in SCOPES:
         print(f"- {scope}")
     return 0
@@ -93,7 +93,7 @@ def _env_or_prompt(name: str) -> str:
         return value
     value = input(f"{name}: ").strip()
     if not value:
-        print(f"{name} wajib diisi.", file=sys.stderr)
+        print(f"{name} is required.", file=sys.stderr)
         raise SystemExit(1)
     return value
 
@@ -114,10 +114,9 @@ def _extract_code_and_state(redirect_response: str) -> tuple[str, str]:
         if code:
             return code, state
 
-    print("Redirect URL tidak mengandung code OAuth.", file=sys.stderr)
+    print("The redirect URL does not contain an OAuth code.", file=sys.stderr)
     raise SystemExit(1)
 
 
 if __name__ == "__main__":
     raise SystemExit(main())
-

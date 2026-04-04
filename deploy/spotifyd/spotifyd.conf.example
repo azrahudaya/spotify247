@@ -8,4 +8,4 @@ bitrate = 160
 volume_controller = "softvol"
 autoplay = true
 disable_discovery = true
-
+use_mpris = false

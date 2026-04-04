@@ -1,14 +1,16 @@
 [Unit]
 Description=spotifyd headless Spotify Connect daemon
-After=network-online.target pulseaudio.service
+After=network-online.target
 Wants=network-online.target
 
 [Service]
 Type=simple
+User=root
+Environment=HOME=/root
 ExecStartPre=/bin/sh -lc 'pulseaudio --check >/dev/null 2>&1 || pulseaudio --start'
-ExecStart=/usr/local/bin/spotifyd --no-daemon --config-path %h/.config/spotifyd/spotifyd.conf
+ExecStart=/usr/local/bin/spotifyd --no-daemon --config-path /root/.config/spotifyd/spotifyd.conf
 Restart=always
 RestartSec=5
 
 [Install]
-WantedBy=default.target
+WantedBy=multi-user.target

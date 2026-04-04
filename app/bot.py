@@ -117,9 +117,9 @@ class SpotifyTelegramBot:
             self._telegram.send_message(
                 chat_id,
                 (
-                    "Akses ditolak.\n"
-                    "Tambahkan user id kamu ke <code>TELEGRAM_ALLOWED_USER_IDS</code>.\n"
-                    f"User ID kamu: <code>{user_id}</code>"
+                    "Access denied.\n"
+                    "Add your user ID to <code>TELEGRAM_ALLOWED_USER_IDS</code>.\n"
+                    f"Your user ID: <code>{user_id}</code>"
                 ),
             )
             return
@@ -169,7 +169,7 @@ class SpotifyTelegramBot:
 
             if command == "/volume":
                 if not argument_text:
-                    raise SpotifyApiError("Pakai format /volume 0-100")
+                    raise SpotifyApiError("Use /volume 0-100.")
                 self._spotify.set_volume(int(argument_text))
                 self._send_or_replace_panel(chat_id)
                 return
@@ -181,7 +181,7 @@ class SpotifyTelegramBot:
                     self._pending_search_users[chat_id] = user_id
                     self._telegram.send_message(
                         chat_id,
-                        "Kirim judul lagu yang mau dicari. Contoh: <code>Joji slow dancing</code>",
+                        "Send a song title to search. Example: <code>Joji slow dancing</code>",
                         reply_to_message_id=message_id,
                     )
                 return
@@ -211,7 +211,7 @@ class SpotifyTelegramBot:
         if not user_id or not chat_id or not message_id:
             self._telegram.answer_callback_query(
                 callback_id,
-                text="Callback tidak valid.",
+                text="Invalid callback.",
                 show_alert=True,
             )
             return
@@ -219,7 +219,7 @@ class SpotifyTelegramBot:
         if not self._is_authorized(user_id):
             self._telegram.answer_callback_query(
                 callback_id,
-                text="User ini tidak diizinkan.",
+                text="Access denied.",
                 show_alert=True,
             )
             return
@@ -229,18 +229,18 @@ class SpotifyTelegramBot:
                 self._pending_search_users[chat_id] = user_id
                 self._telegram.answer_callback_query(
                     callback_id,
-                    text="Kirim judul lagu di chat ini.",
+                    text="Send a song title in this chat.",
                 )
                 self._telegram.send_message(
                     chat_id,
-                    "Mode cari aktif. Kirim nama lagu yang mau diputar di VPS.",
+                    "Search mode is on. Send a song title to play it on the VPS.",
                     reply_to_message_id=message_id,
                 )
                 return
 
             if data == "action:refresh":
                 self._refresh_panel_message(chat_id, message_id)
-                self._telegram.answer_callback_query(callback_id, text="Panel di-refresh.")
+                self._telegram.answer_callback_query(callback_id, text="Panel refreshed.")
                 return
 
             if data == "action:toggle":
@@ -253,7 +253,7 @@ class SpotifyTelegramBot:
                 next_state = self._spotify.cycle_repeat()
                 self._telegram.answer_callback_query(
                     callback_id,
-                    text=f"Repeat jadi {next_state}.",
+                    text=f"Repeat: {next_state}.",
                 )
                 self._refresh_panel_message(chat_id, message_id)
                 return
@@ -287,12 +287,12 @@ class SpotifyTelegramBot:
             else:
                 self._telegram.answer_callback_query(
                     callback_id,
-                    text="Aksi tidak dikenali.",
+                    text="Unknown action.",
                     show_alert=True,
                 )
                 return
 
-            self._telegram.answer_callback_query(callback_id, text="Sip.")
+            self._telegram.answer_callback_query(callback_id, text="Done.")
             self._refresh_panel_message(chat_id, message_id)
         except SpotifyApiError as exc:
             self._telegram.answer_callback_query(
@@ -375,8 +375,8 @@ class SpotifyTelegramBot:
             lines.extend(
                 [
                     f"Status: <b>{status}</b>",
-                    f"Lagu: <b>{html.escape(track.get('name', 'Unknown Track'))}</b>",
-                    f"Artis: {html.escape(artists)}",
+                    f"Track: <b>{html.escape(track.get('name', 'Unknown Track'))}</b>",
+                    f"Artist: {html.escape(artists)}",
                     f"Album: {html.escape(track.get('album', {}).get('name', 'Unknown Album'))}",
                     f"Progress: {self._format_ms(progress_ms)} / {self._format_ms(duration_ms)}",
                     f"Repeat: {html.escape(str(playback.get('repeat_state', 'off')))}",
@@ -391,7 +391,7 @@ class SpotifyTelegramBot:
             lines.extend(
                 [
                     "Status: <b>Idle</b>",
-                    "Belum ada track aktif di device target.",
+                    "No active track on the target device.",
                 ]
             )
 
@@ -416,7 +416,7 @@ class SpotifyTelegramBot:
                 {"text": "Vol +10", "callback_data": "action:vol_up"},
             ],
             [
-                {"text": "Cari Lagu", "callback_data": "action:search"},
+                {"text": "Search", "callback_data": "action:search"},
                 {"text": "Refresh", "callback_data": "action:refresh"},
             ],
         ]
@@ -447,15 +447,15 @@ class SpotifyTelegramBot:
         if not tracks:
             self._telegram.send_message(
                 chat_id,
-                f"Tidak ada hasil untuk <code>{html.escape(query)}</code>.",
+                f"No results for <code>{html.escape(query)}</code>.",
                 reply_to_message_id=reply_to_message_id,
             )
             return
 
         text_lines = [
-            "<b>Hasil Pencarian</b>",
-            f"Keyword: <code>{html.escape(query)}</code>",
-            "Pilih track untuk langsung diputar di VPS:",
+            "<b>Search Results</b>",
+            f"Query: <code>{html.escape(query)}</code>",
+            "Choose a track to play on the VPS:",
         ]
         keyboard: list[list[dict[str, Any]]] = []
         for track in tracks:
@@ -483,7 +483,7 @@ class SpotifyTelegramBot:
     def _devices_text(self) -> str:
         devices = self._spotify.get_devices()
         if not devices:
-            return "<b>Devices</b>\nTidak ada device Spotify yang online."
+            return "<b>Devices</b>\nNo Spotify devices are online."
 
         lines = ["<b>Devices</b>"]
         for device in devices:
@@ -510,23 +510,23 @@ class SpotifyTelegramBot:
         lines = [
             "<b>Spotify Telegram Bot</b>",
             "",
-            "Command utama:",
-            "/panel - kirim panel tombol",
-            "/search &lt;judul&gt; - cari lalu pilih lagu",
+            "Commands:",
+            "/panel - show the control panel",
+            "/search &lt;query&gt; - search and pick a track",
             "/play, /pause, /next, /prev",
             "/repeat [off|track|context]",
             "/shuffle [on|off]",
             "/volume 0-100",
-            "/devices - lihat device Spotify online",
-            "/whoami - lihat user id Telegram kamu",
+            "/devices - show online Spotify devices",
+            "/whoami - show your Telegram user ID",
             "",
         ]
 
         if self._is_authorized(user_id):
-            lines.append("User ini sudah diizinkan mengontrol bot.")
+            lines.append("This user can control the bot.")
         else:
             lines.append(
-                "User ini belum diizinkan. Tambahkan user id ke "
+                "This user is not allowed. Add the user ID to "
                 "<code>TELEGRAM_ALLOWED_USER_IDS</code>."
             )
         return "\n".join(lines)

@@ -57,19 +57,19 @@ class SpotifyClient:
         device = exact_match or partial_match
         if not device:
             raise SpotifyApiError(
-                f"Device '{self._config.spotify_device_name}' tidak ditemukan. "
-                "Pastikan spotifyd sudah jalan dan nama device cocok."
+                f"Device '{self._config.spotify_device_name}' not found. "
+                "Make sure spotifyd is running and the device name matches."
             )
         if device.get("is_restricted"):
             raise SpotifyApiError(
                 f"Device '{device.get('name', self._config.spotify_device_name)}' "
-                "sedang restricted dan tidak bisa dikontrol via API."
+                "is restricted and cannot be controlled through the API."
             )
         device_id = device.get("id")
         if not device_id:
             raise SpotifyApiError(
                 f"Device '{device.get('name', self._config.spotify_device_name)}' "
-                "tidak punya device_id yang bisa dipakai."
+                "does not expose a usable device ID."
             )
         return TargetDevice(
             device_id=device_id,
@@ -162,7 +162,7 @@ class SpotifyClient:
 
     def set_repeat(self, state: str) -> None:
         if state not in {"off", "track", "context"}:
-            raise SpotifyApiError("Repeat hanya menerima off, track, atau context.")
+            raise SpotifyApiError("Repeat must be off, track, or context.")
         target = self.ensure_target_active(play=False)
         self._api(
             "PUT",
@@ -195,7 +195,7 @@ class SpotifyClient:
 
     def set_volume(self, volume_percent: int) -> None:
         if volume_percent < 0 or volume_percent > 100:
-            raise SpotifyApiError("Volume harus antara 0 sampai 100.")
+            raise SpotifyApiError("Volume must be between 0 and 100.")
         target = self.ensure_target_active(play=False)
         self._api(
             "PUT",
@@ -213,7 +213,7 @@ class SpotifyClient:
             base_volume = (playback or {}).get("device", {}).get("volume_percent")
 
         if base_volume is None:
-            raise SpotifyApiError("Spotify tidak mengembalikan volume device saat ini.")
+            raise SpotifyApiError("Spotify did not return the current device volume.")
 
         next_volume = min(100, max(0, base_volume + delta))
         self.set_volume(next_volume)
@@ -312,14 +312,15 @@ class SpotifyClient:
             payload = response.json()
         except ValueError as exc:
             raise SpotifyApiError(
-                f"Spotify auth gagal: HTTP {response.status_code}"
+                f"Spotify auth failed: HTTP {response.status_code}"
             ) from exc
 
         if response.status_code != 200:
             message = payload.get("error_description") or payload.get("error") or response.text
             raise SpotifyApiError(
-                "Refresh token Spotify gagal. "
-                f"Periksa SPOTIFY_CLIENT_ID/SECRET/REFRESH_TOKEN. Detail: {message}"
+                "Spotify refresh failed. "
+                "Check SPOTIFY_CLIENT_ID, SPOTIFY_CLIENT_SECRET, and "
+                f"SPOTIFY_REFRESH_TOKEN. Detail: {message}"
             )
 
         self._access_token = payload["access_token"]
@@ -343,19 +344,19 @@ class SpotifyClient:
 
         if response.status_code == 403:
             message = (
-                "Spotify menolak request. Pastikan akun Premium dipakai, "
-                "scope OAuth benar, dan device target tidak restricted. "
+                "Spotify rejected the request. Make sure you are using Premium, "
+                "the OAuth scopes are correct, and the target device is not restricted. "
                 f"Detail: {message}"
             )
         elif response.status_code == 404:
             message = (
-                "Spotify tidak menemukan playback aktif untuk aksi ini. "
-                "Biasanya berarti spotifyd belum aktif sebagai device. "
+                "Spotify could not find an active playback for this action. "
+                "spotifyd is usually not active as a device yet. "
                 f"Detail: {message}"
             )
         elif response.status_code == 429:
             retry_after = response.headers.get("Retry-After")
-            extra = f" Coba lagi dalam {retry_after} detik." if retry_after else ""
+            extra = f" Try again in {retry_after} seconds." if retry_after else ""
             message = f"Spotify rate limit.{extra}"
 
         return SpotifyApiError(f"Spotify API error {response.status_code}: {message}")

@@ -5,7 +5,7 @@ PROJECT_DIR="${1:-$HOME/spotify247}"
 SPOTIFYD_RELEASE_FLAVOR="${SPOTIFYD_RELEASE_FLAVOR:-default}"
 
 if [[ "$(uname -s)" != "Linux" ]]; then
-  echo "Script ini hanya untuk Linux/Ubuntu."
+  echo "This script only supports Linux/Ubuntu."
   exit 1
 fi
 
@@ -22,8 +22,8 @@ sudo apt-get install -y \
 
 mkdir -p "$PROJECT_DIR"
 if [[ ! -f "$PROJECT_DIR/requirements.txt" ]]; then
-  echo "requirements.txt tidak ditemukan di $PROJECT_DIR"
-  echo "Jalankan script ini dari root project atau kirim path root project sebagai argumen pertama."
+  echo "requirements.txt was not found in $PROJECT_DIR"
+  echo "Run this script from the project root or pass the project root as the first argument."
   exit 1
 fi
 
@@ -32,7 +32,7 @@ python3 -m venv "$PROJECT_DIR/.venv"
 "$PROJECT_DIR/.venv/bin/pip" install -r "$PROJECT_DIR/requirements.txt"
 
 if command -v spotifyd >/dev/null 2>&1; then
-  echo "spotifyd sudah terpasang: $(command -v spotifyd)"
+  echo "spotifyd is already installed: $(command -v spotifyd)"
   exit 0
 fi
 
@@ -41,7 +41,7 @@ case "$ARCH" in
   x86_64) ASSET_ARCH="x86_64" ;;
   aarch64 | arm64) ASSET_ARCH="aarch64" ;;
   *)
-    echo "Arsitektur $ARCH belum didukung otomatis. Install spotifyd manual dari GitHub release."
+    echo "Architecture $ARCH is not supported by the automatic installer. Install spotifyd manually from the GitHub release page."
     exit 1
     ;;
 esac
@@ -51,7 +51,7 @@ RELEASE_JSON="$(curl -fsSL https://api.github.com/repos/Spotifyd/spotifyd/releas
 DOWNLOAD_URL="$(printf '%s' "$RELEASE_JSON" | jq -r --arg ASSET_NAME "$ASSET_NAME" '.assets[] | select(.name == $ASSET_NAME) | .browser_download_url' | head -n1)"
 
 if [[ -z "$DOWNLOAD_URL" ]]; then
-  echo "Gagal menemukan asset spotifyd untuk $ASSET_NAME"
+  echo "Could not find a spotifyd asset for $ASSET_NAME"
   exit 1
 fi
 
@@ -63,10 +63,10 @@ tar -xzf "$TMP_DIR/spotifyd.tar.gz" -C "$TMP_DIR"
 SPOTIFYD_BIN="$(find "$TMP_DIR" -type f -name spotifyd | head -n1)"
 
 if [[ -z "$SPOTIFYD_BIN" ]]; then
-  echo "Binary spotifyd tidak ditemukan setelah extract asset."
+  echo "spotifyd binary was not found after extracting the asset."
   exit 1
 fi
 
 sudo install -m 0755 "$SPOTIFYD_BIN" /usr/local/bin/spotifyd
 
-echo "spotifyd terpasang di /usr/local/bin/spotifyd"
+echo "spotifyd was installed to /usr/local/bin/spotifyd"
