@@ -1,0 +1,16 @@
+[Unit]
+Description=Telegram Spotify controller bot
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=%h/spotify247
+EnvironmentFile=%h/spotify247/.env
+ExecStart=%h/spotify247/.venv/bin/python -m app.main
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=default.target
+

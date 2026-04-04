@@ -1,0 +1,5 @@
+### Append these lines to ~/.config/pulse/default.pa
+load-module module-always-sink
+load-module module-null-sink sink_name=spotify247 sink_properties=device.description=Spotify247
+set-default-sink spotify247
+

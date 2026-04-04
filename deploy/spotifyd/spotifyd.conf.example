@@ -1,0 +1,11 @@
+[global]
+device_name = "Spotify VPS"
+device_type = "speaker"
+backend = "pulseaudio"
+device = "spotify247"
+cache_path = "/home/YOUR_USER/.cache/spotifyd"
+bitrate = 160
+volume_controller = "softvol"
+autoplay = true
+disable_discovery = true
+
