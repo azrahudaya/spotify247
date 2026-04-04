@@ -127,6 +127,22 @@
         line-height: 1.45;
       }
 
+      .progress-track {
+        height: 0.35rem;
+        width: 100%;
+        overflow: hidden;
+        border-radius: 9999px;
+        background: rgba(23, 23, 20, 0.09);
+      }
+
+      .progress-fill {
+        height: 100%;
+        width: 0%;
+        border-radius: 9999px;
+        background: #171714;
+        transition: width 900ms linear;
+      }
+
       .status-dot {
         width: 0.5rem;
         height: 0.5rem;
@@ -191,9 +207,10 @@
           <div class="cover-wrap aspect-square rounded-[1.75rem]">
             <img
               id="cover-image"
+              hidden
               src=""
               alt="Album cover"
-              class="hidden h-full w-full object-cover"
+              class="h-full w-full object-cover"
             />
             <div
               id="cover-fallback"
@@ -212,6 +229,16 @@
           </div>
 
           <p id="track-message" hidden class="meta-text mt-4 text-sm text-base-content/62"></p>
+
+          <div id="progress-wrap" hidden class="mt-5">
+            <div class="progress-track">
+              <div id="progress-fill" class="progress-fill"></div>
+            </div>
+            <div class="mt-2 flex items-center justify-between text-[0.82rem] font-medium text-base-content/48">
+              <span id="progress-current">0:00</span>
+              <span id="progress-total">0:00</span>
+            </div>
+          </div>
 
           <div class="mt-6">
             <a
@@ -266,8 +293,13 @@
         artist: document.getElementById("track-artist"),
         album: document.getElementById("track-album"),
         message: document.getElementById("track-message"),
+        progressWrap: document.getElementById("progress-wrap"),
+        progressFill: document.getElementById("progress-fill"),
+        progressCurrent: document.getElementById("progress-current"),
+        progressTotal: document.getElementById("progress-total"),
         spotifyLink: document.getElementById("spotify-link"),
       };
+      let progressTimer = null;
 
       function setPanelReady() {
         els.panel.classList.add("is-ready");
@@ -295,10 +327,69 @@
         }).format(date);
       }
 
+      function formatClock(milliseconds) {
+        const totalSeconds = Math.max(0, Math.floor(milliseconds / 1000));
+        const minutes = Math.floor(totalSeconds / 60);
+        const seconds = totalSeconds % 60;
+        return minutes + ":" + String(seconds).padStart(2, "0");
+      }
+
       function setMessage(text) {
         const value = (text || "").trim();
         els.message.textContent = value;
         els.message.hidden = value === "";
+      }
+
+      function clearProgressTimer() {
+        if (progressTimer !== null) {
+          window.clearInterval(progressTimer);
+          progressTimer = null;
+        }
+      }
+
+      function hideProgress() {
+        clearProgressTimer();
+        els.progressWrap.hidden = true;
+        els.progressFill.style.width = "0%";
+        els.progressCurrent.textContent = "0:00";
+        els.progressTotal.textContent = "0:00";
+      }
+
+      function renderProgress(payload) {
+        clearProgressTimer();
+
+        const duration = Number(payload.duration_ms);
+        const baseProgress = Number(payload.progress_ms);
+        const generatedAt = Date.parse(payload.generated_at || "");
+        const canRender =
+          Number.isFinite(duration) &&
+          duration > 0 &&
+          Number.isFinite(baseProgress) &&
+          baseProgress >= 0;
+
+        if (!canRender) {
+          hideProgress();
+          return;
+        }
+
+        els.progressWrap.hidden = false;
+        els.progressTotal.textContent = formatClock(duration);
+
+        function paint() {
+          let progress = baseProgress;
+          if (payload.is_playing && Number.isFinite(generatedAt)) {
+            progress += Date.now() - generatedAt;
+          }
+          progress = Math.max(0, Math.min(duration, progress));
+          els.progressCurrent.textContent = formatClock(progress);
+          els.progressFill.style.width = ((progress / duration) * 100).toFixed(3) + "%";
+        }
+
+        paint();
+
+        if (payload.is_playing && baseProgress < duration) {
+          progressTimer = window.setInterval(paint, 1000);
+        }
       }
 
       function disableSpotifyLink() {
@@ -325,6 +416,7 @@
           state === "paused" ? "Playback is paused right now." : "Nothing is playing right now.";
         els.album.textContent = "";
         setMessage(state === "error" ? "" : payload.message || formatTime(payload.generated_at));
+        hideProgress();
         disableSpotifyLink();
         document.title = "spotify247 | Now Playing";
         setPanelReady();
@@ -336,6 +428,7 @@
         els.artist.textContent = payload.artist_line || "Unknown artist";
         els.album.textContent = payload.album ? "Album: " + payload.album : "";
         setMessage(payload.message || "Updated " + formatTime(payload.generated_at));
+        renderProgress(payload);
         document.title = (payload.title || "Now Playing") + " | spotify247";
 
         if (payload.artwork_url) {
