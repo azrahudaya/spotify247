@@ -11,6 +11,7 @@ from app.config import Config
 
 ACCOUNTS_BASE_URL = "https://accounts.spotify.com"
 WEB_API_BASE_URL = "https://api.spotify.com/v1"
+CONTROL_SUCCESS_STATUSES = {200, 202, 204}
 
 
 class SpotifyApiError(RuntimeError):
@@ -87,7 +88,7 @@ class SpotifyClient:
             "PUT",
             "/me/player",
             json_body={"device_ids": [target.device_id], "play": play},
-            expected_statuses={204},
+            expected_statuses=CONTROL_SUCCESS_STATUSES,
         )
         target.is_active = True
         return target
@@ -98,7 +99,7 @@ class SpotifyClient:
             "PUT",
             "/me/player/play",
             params={"device_id": target.device_id},
-            expected_statuses={204},
+            expected_statuses=CONTROL_SUCCESS_STATUSES,
         )
 
     def pause(self) -> None:
@@ -107,7 +108,7 @@ class SpotifyClient:
             "PUT",
             "/me/player/pause",
             params={"device_id": target.device_id},
-            expected_statuses={204},
+            expected_statuses=CONTROL_SUCCESS_STATUSES,
         )
 
     def toggle_playback(self) -> None:
@@ -129,7 +130,7 @@ class SpotifyClient:
             "POST",
             "/me/player/next",
             params={"device_id": target.device_id},
-            expected_statuses={204},
+            expected_statuses=CONTROL_SUCCESS_STATUSES,
         )
 
     def previous_track(self) -> None:
@@ -138,7 +139,7 @@ class SpotifyClient:
             "POST",
             "/me/player/previous",
             params={"device_id": target.device_id},
-            expected_statuses={204},
+            expected_statuses=CONTROL_SUCCESS_STATUSES,
         )
 
     def cycle_repeat(self) -> str:
@@ -155,7 +156,7 @@ class SpotifyClient:
             "PUT",
             "/me/player/repeat",
             params={"state": next_state, "device_id": target.device_id},
-            expected_statuses={204},
+            expected_statuses=CONTROL_SUCCESS_STATUSES,
         )
         return next_state
 
@@ -167,7 +168,7 @@ class SpotifyClient:
             "PUT",
             "/me/player/repeat",
             params={"state": state, "device_id": target.device_id},
-            expected_statuses={204},
+            expected_statuses=CONTROL_SUCCESS_STATUSES,
         )
 
     def toggle_shuffle(self) -> bool:
@@ -179,7 +180,7 @@ class SpotifyClient:
             "PUT",
             "/me/player/shuffle",
             params={"state": str(next_state).lower(), "device_id": target.device_id},
-            expected_statuses={204},
+            expected_statuses=CONTROL_SUCCESS_STATUSES,
         )
         return next_state
 
@@ -189,7 +190,7 @@ class SpotifyClient:
             "PUT",
             "/me/player/shuffle",
             params={"state": str(state).lower(), "device_id": target.device_id},
-            expected_statuses={204},
+            expected_statuses=CONTROL_SUCCESS_STATUSES,
         )
 
     def set_volume(self, volume_percent: int) -> None:
@@ -200,7 +201,7 @@ class SpotifyClient:
             "PUT",
             "/me/player/volume",
             params={"volume_percent": volume_percent, "device_id": target.device_id},
-            expected_statuses={204},
+            expected_statuses=CONTROL_SUCCESS_STATUSES,
         )
 
     def change_volume(self, delta: int) -> int:
@@ -225,7 +226,7 @@ class SpotifyClient:
             "/me/player/play",
             params={"device_id": target.device_id},
             json_body={"uris": [f"spotify:track:{track_id}"]},
-            expected_statuses={204},
+            expected_statuses=CONTROL_SUCCESS_STATUSES,
         )
 
     def search_tracks(self, query: str) -> list[dict[str, Any]]:
@@ -276,7 +277,11 @@ class SpotifyClient:
         if response.status_code in expected_statuses:
             if response.status_code == 204 or not response.content:
                 return None
-            return response.json()
+            try:
+                return response.json()
+            except ValueError:
+                # Some successful playback-control responses may return plain text.
+                return {"raw_text": response.text.strip()}
 
         raise self._build_error(response)
 
@@ -354,4 +359,3 @@ class SpotifyClient:
             message = f"Spotify rate limit.{extra}"
 
         return SpotifyApiError(f"Spotify API error {response.status_code}: {message}")
-
