@@ -143,17 +143,6 @@
         transition: width 900ms linear;
       }
 
-      .status-dot {
-        width: 0.5rem;
-        height: 0.5rem;
-        border-radius: 9999px;
-        background: currentColor;
-      }
-
-      .status-live .status-dot {
-        animation: pulseSoft 1.4s ease-in-out infinite;
-      }
-
       .spotify-btn {
         transition:
           transform 180ms ease,
@@ -196,14 +185,6 @@
         </div>
 
         <div class="shell-body">
-          <div class="mb-5 flex items-center justify-between gap-3">
-            <p class="text-sm font-semibold text-base-content/55">spotify247</p>
-            <div id="status-wrap" class="inline-flex items-center gap-2 rounded-full border border-base-300 bg-base-100 px-3 py-1.5 text-sm font-semibold text-base-content/70">
-              <span class="status-dot" aria-hidden="true"></span>
-              <span id="status-label">Loading</span>
-            </div>
-          </div>
-
           <div class="cover-wrap aspect-square rounded-[1.75rem]">
             <img
               id="cover-image"
@@ -259,34 +240,26 @@
       const stateStyles = {
         loading: {
           label: "Loading",
-          classes: "text-base-content/70 border-base-300 bg-base-100",
         },
         playing: {
           label: "Playing",
-          classes: "status-live text-success border-success/20 bg-success/8",
         },
         paused: {
           label: "Paused",
-          classes: "text-warning border-warning/20 bg-warning/8",
         },
         idle: {
           label: "Idle",
-          classes: "text-base-content/65 border-base-300 bg-base-100",
         },
         setup_required: {
           label: "Setup",
-          classes: "text-info border-info/20 bg-info/8",
         },
         error: {
           label: "Error",
-          classes: "text-error border-error/20 bg-error/8",
         },
       };
 
       const els = {
         panel: document.getElementById("panel"),
-        statusWrap: document.getElementById("status-wrap"),
-        statusLabel: document.getElementById("status-label"),
         cover: document.getElementById("cover-image"),
         coverFallback: document.getElementById("cover-fallback"),
         title: document.getElementById("track-title"),
@@ -306,11 +279,8 @@
       }
 
       function setStatus(state) {
-        const config = stateStyles[state] || stateStyles.loading;
-        els.statusWrap.className =
-          "inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-sm font-semibold " +
-          config.classes;
-        els.statusLabel.textContent = config.label;
+        document.documentElement.dataset.playState =
+          (stateStyles[state] || stateStyles.loading).label.toLowerCase();
       }
 
       function formatTime(isoString) {
