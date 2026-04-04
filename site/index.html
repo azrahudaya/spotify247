@@ -22,7 +22,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Lato:wght@400;700;900&display=swap"
       rel="stylesheet"
     />
     <link
@@ -37,12 +37,12 @@
       }
 
       body {
-        font-family: "Plus Jakarta Sans", sans-serif;
+        font-family: "Lato", sans-serif;
         min-height: 100vh;
         background: #f3f1eb;
-        color: #171714;
-        letter-spacing: -0.012em;
-        line-height: 1.5;
+        color: #2f2a24;
+        letter-spacing: 0;
+        line-height: 1.55;
       }
 
       .shell {
@@ -89,23 +89,23 @@
         width: 2.75rem;
         height: 2.75rem;
         border-radius: 9999px;
-        border: 2px solid rgba(23, 23, 20, 0.12);
+        border: 2px solid rgba(47, 42, 36, 0.12);
         border-top-color: #1db954;
         animation: spin 900ms linear infinite;
       }
 
       .loader-text {
-        color: rgba(23, 23, 20, 0.58);
+        color: rgba(47, 42, 36, 0.58);
         font-size: 0.95rem;
         font-weight: 600;
-        letter-spacing: -0.01em;
+        letter-spacing: 0;
       }
 
       .cover-wrap {
         border-radius: 1.75rem;
         overflow: hidden;
         background: #1db954;
-        box-shadow: 0 18px 40px rgba(18, 18, 16, 0.16);
+        box-shadow: 0 18px 40px rgba(36, 31, 27, 0.14);
       }
 
       .cover-fallback {
@@ -113,18 +113,18 @@
       }
 
       .title-text {
-        letter-spacing: -0.045em;
-        line-height: 1.04;
+        letter-spacing: -0.018em;
+        line-height: 1.12;
       }
 
       .artist-text {
-        letter-spacing: -0.018em;
-        line-height: 1.3;
+        letter-spacing: 0;
+        line-height: 1.42;
       }
 
       .meta-text {
-        letter-spacing: -0.012em;
-        line-height: 1.45;
+        letter-spacing: 0;
+        line-height: 1.55;
       }
 
       .live-chip {
@@ -132,13 +132,13 @@
         align-items: center;
         gap: 0.55rem;
         border-radius: 9999px;
-        border: 1px solid rgba(23, 23, 20, 0.08);
+        border: 1px solid rgba(47, 42, 36, 0.08);
         background: rgba(255, 255, 252, 0.8);
         padding: 0.5rem 0.85rem;
         font-size: 0.82rem;
         font-weight: 700;
-        letter-spacing: -0.01em;
-        color: rgba(23, 23, 20, 0.72);
+        letter-spacing: 0;
+        color: rgba(47, 42, 36, 0.72);
       }
 
       .live-dot {
@@ -222,8 +222,6 @@
             <p id="track-album" class="meta-text text-sm text-base-content/50"></p>
           </div>
 
-          <p id="track-message" hidden class="meta-text mt-4 text-sm text-base-content/62"></p>
-
           <div class="mt-6">
             <a
               id="spotify-link"
@@ -270,32 +268,11 @@
         title: document.getElementById("track-title"),
         artist: document.getElementById("track-artist"),
         album: document.getElementById("track-album"),
-        message: document.getElementById("track-message"),
         spotifyLink: document.getElementById("spotify-link"),
       };
 
       function setPanelReady() {
         els.panel.classList.add("is-ready");
-      }
-
-      function formatTime(isoString) {
-        if (!isoString) {
-          return "";
-        }
-        const date = new Date(isoString);
-        if (Number.isNaN(date.getTime())) {
-          return isoString;
-        }
-        return new Intl.DateTimeFormat(undefined, {
-          dateStyle: "medium",
-          timeStyle: "short",
-        }).format(date);
-      }
-
-      function setMessage(text) {
-        const value = (text || "").trim();
-        els.message.textContent = value;
-        els.message.hidden = value === "";
       }
 
       function setPlaybackChip(state) {
@@ -342,7 +319,6 @@
         els.artist.textContent =
           state === "paused" ? "Playback is paused right now." : "Nothing is playing right now.";
         els.album.textContent = "";
-        setMessage(state === "error" ? "" : payload.message || formatTime(payload.generated_at));
         disableSpotifyLink();
         document.title = "spotify247 | Now Playing";
         setPanelReady();
@@ -353,7 +329,6 @@
         els.title.textContent = payload.title || "Unknown track";
         els.artist.textContent = payload.artist_line || "Unknown artist";
         els.album.textContent = payload.album ? "Album: " + payload.album : "";
-        setMessage(payload.message || "Updated " + formatTime(payload.generated_at));
         document.title = (payload.title || "Now Playing") + " | spotify247";
 
         if (payload.artwork_url) {
