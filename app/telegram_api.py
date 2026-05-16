@@ -30,6 +30,14 @@ class TelegramApi:
         data = self._parse_response(response)
         return data["result"]
 
+    def get_me(self) -> dict[str, Any]:
+        response = self._session.post(
+            f"{self._base_url}/getMe",
+            timeout=20,
+        )
+        data = self._parse_response(response)
+        return data["result"]
+
     def send_message(
         self,
         chat_id: int,
@@ -124,4 +132,3 @@ class TelegramApi:
                 f"Telegram API error {response.status_code}: {description}"
             )
         return data
-
