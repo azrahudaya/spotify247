@@ -19,7 +19,7 @@ class Config:
     spotify_client_secret: str
     spotify_refresh_token: str
     spotify_redirect_uri: str
-    spotify_device_name: str
+    spotify_device_name: str | None
     spotify_market: str | None
     bot_poll_timeout_seconds: int
     bot_search_limit: int
@@ -36,8 +36,6 @@ def load_config() -> Config:
         "SPOTIFY_CLIENT_ID": os.getenv("SPOTIFY_CLIENT_ID", "").strip(),
         "SPOTIFY_CLIENT_SECRET": os.getenv("SPOTIFY_CLIENT_SECRET", "").strip(),
         "SPOTIFY_REFRESH_TOKEN": os.getenv("SPOTIFY_REFRESH_TOKEN", "").strip(),
-        "SPOTIFY_REDIRECT_URI": os.getenv("SPOTIFY_REDIRECT_URI", "").strip(),
-        "SPOTIFY_DEVICE_NAME": os.getenv("SPOTIFY_DEVICE_NAME", "").strip(),
     }
 
     missing = [name for name, value in required.items() if not value]
@@ -67,8 +65,11 @@ def load_config() -> Config:
         spotify_client_id=required["SPOTIFY_CLIENT_ID"],
         spotify_client_secret=required["SPOTIFY_CLIENT_SECRET"],
         spotify_refresh_token=required["SPOTIFY_REFRESH_TOKEN"],
-        spotify_redirect_uri=required["SPOTIFY_REDIRECT_URI"],
-        spotify_device_name=required["SPOTIFY_DEVICE_NAME"],
+        spotify_redirect_uri=(
+            os.getenv("SPOTIFY_REDIRECT_URI", "").strip()
+            or "http://127.0.0.1:8888/callback"
+        ),
+        spotify_device_name=os.getenv("SPOTIFY_DEVICE_NAME", "").strip() or None,
         spotify_market=os.getenv("SPOTIFY_MARKET", "").strip() or None,
         bot_poll_timeout_seconds=poll_timeout,
         bot_search_limit=search_limit,
@@ -103,4 +104,3 @@ def _parse_int(name: str, raw_value: str, minimum: int, maximum: int) -> int:
     if value < minimum or value > maximum:
         raise ConfigError(f"{name} must be between {minimum} and {maximum}.")
     return value
-

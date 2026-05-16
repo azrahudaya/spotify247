@@ -37,43 +37,45 @@ class SpotifyClient:
     def get_playback(self) -> dict[str, Any] | None:
         return self._api("GET", "/me/player", expected_statuses={200, 204})
 
+    def get_current_user(self) -> dict[str, Any]:
+        return self._api("GET", "/me")
+
     def get_devices(self) -> list[dict[str, Any]]:
         payload = self._api("GET", "/me/player/devices")
         return payload.get("devices", [])
 
     def get_target_device(self) -> TargetDevice:
-        normalized_target = self._config.spotify_device_name.casefold()
-        exact_match: dict[str, Any] | None = None
-        partial_match: dict[str, Any] | None = None
+        devices = self.get_devices()
+        named_target = self._config.spotify_device_name
+        device = (
+            self._match_named_device(devices, named_target)
+            if named_target
+            else self._pick_auto_device(devices)
+        )
 
-        for device in self.get_devices():
-            device_name = device.get("name", "")
-            if device_name.casefold() == normalized_target:
-                exact_match = device
-                break
-            if normalized_target in device_name.casefold():
-                partial_match = device
-
-        device = exact_match or partial_match
         if not device:
+            if named_target:
+                raise SpotifyApiError(
+                    f"Device '{named_target}' not found. "
+                    "Make sure spotifyd is running or leave SPOTIFY_DEVICE_NAME empty "
+                    "to use any active Spotify device."
+                )
             raise SpotifyApiError(
-                f"Device '{self._config.spotify_device_name}' not found. "
-                "Make sure spotifyd is running and the device name matches."
+                "No controllable Spotify device is online. Open Spotify on a device "
+                "or run spotifyd on the server."
             )
+
+        device_name = device.get("name") or named_target or "Auto device"
         if device.get("is_restricted"):
             raise SpotifyApiError(
-                f"Device '{device.get('name', self._config.spotify_device_name)}' "
-                "is restricted and cannot be controlled through the API."
+                f"Device '{device_name}' is restricted and cannot be controlled through the API."
             )
         device_id = device.get("id")
         if not device_id:
-            raise SpotifyApiError(
-                f"Device '{device.get('name', self._config.spotify_device_name)}' "
-                "does not expose a usable device ID."
-            )
+            raise SpotifyApiError(f"Device '{device_name}' does not expose a usable device ID.")
         return TargetDevice(
             device_id=device_id,
-            name=device.get("name", self._config.spotify_device_name),
+            name=device_name,
             is_active=bool(device.get("is_active")),
             type=device.get("type", "unknown"),
             volume_percent=device.get("volume_percent"),
@@ -280,7 +282,6 @@ class SpotifyClient:
             try:
                 return response.json()
             except ValueError:
-                # Some successful playback-control responses may return plain text.
                 return {"raw_text": response.text.strip()}
 
         raise self._build_error(response)
@@ -360,3 +361,34 @@ class SpotifyClient:
             message = f"Spotify rate limit.{extra}"
 
         return SpotifyApiError(f"Spotify API error {response.status_code}: {message}")
+
+    @staticmethod
+    def _match_named_device(
+        devices: list[dict[str, Any]],
+        named_target: str,
+    ) -> dict[str, Any] | None:
+        normalized_target = named_target.casefold()
+        partial_match: dict[str, Any] | None = None
+
+        for device in devices:
+            device_name = device.get("name", "")
+            normalized_device = device_name.casefold()
+            if normalized_device == normalized_target:
+                return device
+            if normalized_target in normalized_device:
+                partial_match = device
+
+        return partial_match
+
+    @staticmethod
+    def _pick_auto_device(devices: list[dict[str, Any]]) -> dict[str, Any] | None:
+        usable_devices = [
+            device
+            for device in devices
+            if device.get("id") and not device.get("is_restricted")
+        ]
+        active_device = next(
+            (device for device in usable_devices if device.get("is_active")),
+            None,
+        )
+        return active_device or (usable_devices[0] if usable_devices else None)

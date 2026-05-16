@@ -338,7 +338,7 @@ class SpotifyTelegramBot:
         playback = self._spotify.get_playback()
         target_device = None
         target_status = "offline"
-        target_device_name = self._config.spotify_device_name
+        target_device_name = self._config.spotify_device_name or "Auto device"
 
         try:
             target_device = self._spotify.get_target_device()
@@ -357,7 +357,7 @@ class SpotifyTelegramBot:
 
         lines = ["<b>Spotify VPS Panel</b>", ""]
         lines.append(
-            "Target device: "
+            "Playback device: "
             f"<code>{html.escape(target_device_name)}</code> ({html.escape(target_status)})"
         )
 
