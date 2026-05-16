@@ -11,7 +11,7 @@ import requests
 
 try:
     from dotenv import load_dotenv
-except ImportError:  # pragma: no cover - optional for local runs
+except ImportError:
     load_dotenv = None
 
 
