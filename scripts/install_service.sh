@@ -23,9 +23,22 @@ if [[ ! -x "$PROJECT_DIR/.venv/bin/python" ]]; then
   exit 1
 fi
 
+if [[ "$PROJECT_DIR" =~ [[:space:]] ]]; then
+  echo "Project paths with whitespace are not supported by this installer yet:"
+  echo "$PROJECT_DIR"
+  exit 1
+fi
+
 mkdir -p "$SERVICE_DIR"
 
 if [[ "$SKIP_SPOTIFYD" != "1" ]]; then
+  SPOTIFYD_BIN="$(command -v spotifyd || true)"
+  if [[ -z "$SPOTIFYD_BIN" ]]; then
+    echo "spotifyd was not found in PATH."
+    echo "Run scripts/install_ubuntu.sh \"$PROJECT_DIR\" first or install spotifyd manually."
+    exit 1
+  fi
+
   cat > "$SERVICE_DIR/spotifyd.service" <<EOF
 [Unit]
 Description=spotifyd headless Spotify Connect daemon
@@ -35,7 +48,7 @@ Wants=network-online.target
 [Service]
 Type=simple
 ExecStartPre=/bin/sh -lc 'pulseaudio --check >/dev/null 2>&1 || pulseaudio --start'
-ExecStart=/usr/local/bin/spotifyd --no-daemon --config-path %h/.config/spotifyd/spotifyd.conf
+ExecStart=$SPOTIFYD_BIN --no-daemon --config-path %h/.config/spotifyd/spotifyd.conf
 Restart=always
 RestartSec=5
 
@@ -63,7 +76,12 @@ WantedBy=default.target
 EOF
 
 if command -v loginctl >/dev/null 2>&1; then
-  loginctl enable-linger "$USER" >/dev/null 2>&1 || true
+  if ! loginctl enable-linger "$USER" >/dev/null 2>&1; then
+    echo "Warning: could not enable linger for $USER."
+    echo "Run sudo loginctl enable-linger \"$USER\" if services stop after logout."
+  fi
+else
+  echo "Warning: loginctl was not found. User services may stop after logout."
 fi
 
 systemctl --user daemon-reload

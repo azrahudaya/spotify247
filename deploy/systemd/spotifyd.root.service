@@ -8,7 +8,7 @@ Type=simple
 User=root
 Environment=HOME=/root
 ExecStartPre=/bin/sh -lc 'pulseaudio --check >/dev/null 2>&1 || pulseaudio --start'
-ExecStart=/usr/local/bin/spotifyd --no-daemon --config-path /root/.config/spotifyd/spotifyd.conf
+ExecStart=/usr/bin/env spotifyd --no-daemon --config-path /root/.config/spotifyd/spotifyd.conf
 Restart=always
 RestartSec=5
 

@@ -40,6 +40,7 @@ ARCH="$(uname -m)"
 case "$ARCH" in
   x86_64) ASSET_ARCH="x86_64" ;;
   aarch64 | arm64) ASSET_ARCH="aarch64" ;;
+  armv7l | armv7) ASSET_ARCH="armv7" ;;
   *)
     echo "Architecture $ARCH is not supported by the automatic installer. Install spotifyd manually from the GitHub release page."
     exit 1

@@ -1,8 +1,11 @@
 from __future__ import annotations
 
+import os
 import platform
 import shutil
+import subprocess
 from dataclasses import dataclass
+from pathlib import Path
 
 import requests
 
@@ -46,11 +49,21 @@ def main() -> int:
 
 
 def _check_env_file() -> CheckLine:
-    from pathlib import Path
-
-    if Path(".env").exists():
-        return CheckLine(".env", "ok", "Found .env in the project root.")
-    return CheckLine(".env", "warn", "No .env file found. Run python -m app.setup.")
+    env_path = Path(".env")
+    if not env_path.exists():
+        return CheckLine(".env", "warn", "No .env file found. Run python -m app.setup.")
+    if env_path.is_symlink():
+        return CheckLine(".env", "warn", ".env is a symlink. Make sure its target is private.")
+    if os.name != "nt":
+        loose_bits = env_path.stat().st_mode & 0o077
+        if loose_bits:
+            return CheckLine(
+                ".env",
+                "warn",
+                f".env is readable outside the owner. Run chmod 600 .env.",
+            )
+        return CheckLine(".env", "ok", "Found .env with owner-only permissions.")
+    return CheckLine(".env", "ok", "Found .env in the project root.")
 
 
 def _check_allowed_users(config: Config) -> CheckLine:
@@ -141,6 +154,7 @@ def _check_host_stack(config: Config) -> list[CheckLine]:
     spotifyd_path = shutil.which("spotifyd")
     pulseaudio_path = shutil.which("pulseaudio")
     systemctl_path = shutil.which("systemctl")
+    pactl_path = shutil.which("pactl")
 
     check_lines.append(
         CheckLine(
@@ -163,6 +177,19 @@ def _check_host_stack(config: Config) -> list[CheckLine]:
             systemctl_path or "systemctl is not available on this host.",
         )
     )
+    check_lines.append(_check_spotifyd_config())
+
+    if pactl_path:
+        check_lines.append(_check_pulse_sink())
+    else:
+        check_lines.append(
+            CheckLine("pulse sink", "warn", "pactl is not available on this host.")
+        )
+
+    if systemctl_path:
+        check_lines.extend(_check_systemd_user_units(config))
+    if shutil.which("loginctl"):
+        check_lines.append(_check_linger_state())
 
     if not config.spotify_device_name:
         check_lines.append(
@@ -173,6 +200,87 @@ def _check_host_stack(config: Config) -> list[CheckLine]:
             )
         )
     return check_lines
+
+
+def _check_spotifyd_config() -> CheckLine:
+    config_path = Path.home() / ".config" / "spotifyd" / "spotifyd.conf"
+    if config_path.exists():
+        return CheckLine("spotifyd config", "ok", str(config_path))
+    return CheckLine(
+        "spotifyd config",
+        "warn",
+        f"{config_path} was not found. Run scripts/setup_spotifyd.sh on VPS hosts.",
+    )
+
+
+def _check_pulse_sink() -> CheckLine:
+    code, output = _run_host_probe(["pactl", "list", "short", "sinks"])
+    if code != 0:
+        return CheckLine("pulse sink", "warn", "PulseAudio sink list is unavailable.")
+    if "spotify247" in output:
+        return CheckLine("pulse sink", "ok", "spotify247 sink is available.")
+    return CheckLine("pulse sink", "warn", "spotify247 sink was not found.")
+
+
+def _check_systemd_user_units(config: Config) -> list[CheckLine]:
+    unit_names = ["telegram-spotify-bot.service"]
+    if config.spotify_device_name:
+        unit_names.append("spotifyd.service")
+
+    check_lines: list[CheckLine] = []
+    for unit_name in unit_names:
+        enabled_code, enabled_output = _run_host_probe(
+            ["systemctl", "--user", "is-enabled", unit_name]
+        )
+        active_code, active_output = _run_host_probe(
+            ["systemctl", "--user", "is-active", unit_name]
+        )
+        if enabled_code == 0 and active_code == 0:
+            check_lines.append(
+                CheckLine(unit_name, "ok", f"{enabled_output}; {active_output}.")
+            )
+        else:
+            detail = ", ".join(
+                item
+                for item in (
+                    enabled_output or "not enabled",
+                    active_output or "not active",
+                )
+                if item
+            )
+            check_lines.append(CheckLine(unit_name, "warn", detail))
+    return check_lines
+
+
+def _check_linger_state() -> CheckLine:
+    user_name = os.getenv("USER") or os.getenv("LOGNAME") or ""
+    if not user_name:
+        return CheckLine("linger", "warn", "Could not determine the current Linux user.")
+    code, output = _run_host_probe(
+        ["loginctl", "show-user", user_name, "-p", "Linger", "--value"]
+    )
+    if code == 0 and output.strip().lower() == "yes":
+        return CheckLine("linger", "ok", f"linger is enabled for {user_name}.")
+    return CheckLine(
+        "linger",
+        "warn",
+        f"linger is not enabled for {user_name}. Run sudo loginctl enable-linger {user_name}.",
+    )
+
+
+def _run_host_probe(command: list[str]) -> tuple[int, str]:
+    try:
+        completed = subprocess.run(
+            command,
+            check=False,
+            capture_output=True,
+            text=True,
+            timeout=5,
+        )
+    except (OSError, subprocess.TimeoutExpired) as exc:
+        return 1, str(exc)
+    output = (completed.stdout or completed.stderr).strip()
+    return completed.returncode, output
 
 
 def _print_check_lines(check_lines: list[CheckLine]) -> None:

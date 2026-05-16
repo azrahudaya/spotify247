@@ -191,11 +191,12 @@ python -m app.doctor
 It checks:
 
 - `.env`
+- `.env` file permissions on Linux
 - Telegram bot token
 - allowed user IDs
 - Spotify refresh token
 - Spotify device discovery
-- Linux host tools for full player mode
+- Linux host tools, services, PulseAudio sink, and linger state for full player mode
 
 ## Environment Variables
 
@@ -255,6 +256,8 @@ LOG_LEVEL=INFO
 - Replit, Railway, Render, and similar platforms are suitable for controller-only mode.
 - Replit Reserved VM can run a background worker, but it is not the best fit for `spotifyd` plus audio daemon setup.
 - Ubuntu/Debian VPS is the recommended host for full 24/7 playback.
+- Keep the project path free of whitespace when using the systemd installer.
+- On Linux, keep `.env` readable only by the owner with `chmod 600 .env`.
 - `SPOTIFY_DEVICE_NAME` should match `device_name` in `spotifyd.conf` only when you want a fixed VPS player.
 - If `TELEGRAM_ALLOWED_USER_IDS` is empty, the bot starts but control requests are denied.
 - Spotify can only play on one active device per account at a time.

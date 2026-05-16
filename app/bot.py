@@ -80,11 +80,18 @@ class SpotifyTelegramBot:
 
         if self._pending_search_users.get(chat_id) == user_id:
             self._pending_search_users.pop(chat_id, None)
-            self._send_search_results(
-                chat_id,
-                query=text,
-                reply_to_message_id=message_id,
-            )
+            try:
+                self._send_search_results(
+                    chat_id,
+                    query=text,
+                    reply_to_message_id=message_id,
+                )
+            except (SpotifyApiError, requests.RequestException) as exc:
+                self._telegram.send_message(
+                    chat_id,
+                    f"<b>Error</b>\n{html.escape(self._error_text(exc))}",
+                    reply_to_message_id=message_id,
+                )
 
     def _handle_command(
         self,
@@ -191,10 +198,10 @@ class SpotifyTelegramBot:
                 return
 
             self._telegram.send_message(chat_id, self._help_text(user_id))
-        except (SpotifyApiError, ValueError) as exc:
+        except (SpotifyApiError, ValueError, requests.RequestException) as exc:
             self._telegram.send_message(
                 chat_id,
-                f"<b>Error</b>\n{html.escape(str(exc))}",
+                f"<b>Error</b>\n{html.escape(self._error_text(exc))}",
                 reply_to_message_id=message_id,
             )
 
@@ -294,10 +301,10 @@ class SpotifyTelegramBot:
 
             self._telegram.answer_callback_query(callback_id, text="Done.")
             self._refresh_panel_message(chat_id, message_id)
-        except SpotifyApiError as exc:
+        except (SpotifyApiError, requests.RequestException) as exc:
             self._telegram.answer_callback_query(
                 callback_id,
-                text=str(exc),
+                text=self._error_text(exc),
                 show_alert=True,
             )
 
@@ -556,3 +563,9 @@ class SpotifyTelegramBot:
         if hours:
             return f"{hours:d}:{minutes:02d}:{seconds:02d}"
         return f"{minutes:d}:{seconds:02d}"
+
+    @staticmethod
+    def _error_text(exc: Exception) -> str:
+        if isinstance(exc, requests.RequestException):
+            return f"Network error while contacting an external API: {exc}"
+        return str(exc)

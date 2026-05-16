@@ -2,6 +2,7 @@
 set -euo pipefail
 
 PROJECT_DIR="${1:-$PWD}"
+PROJECT_DIR="$(cd "$PROJECT_DIR" && pwd)"
 
 if [[ "$(uname -s)" != "Linux" ]]; then
   echo "spotifyd setup only supports Linux."
@@ -14,11 +15,33 @@ if [[ ! -f "$PROJECT_DIR/.env" ]]; then
   exit 1
 fi
 
-DEVICE_NAME="$(awk -F= '$1 == "SPOTIFY_DEVICE_NAME" {sub(/^[^=]*=/, ""); print; exit}' "$PROJECT_DIR/.env")"
-DEVICE_NAME="${DEVICE_NAME%$'\r'}"
-if [[ -z "$DEVICE_NAME" ]]; then
-  DEVICE_NAME="Spotify VPS"
+PYTHON_BIN="$PROJECT_DIR/.venv/bin/python"
+if [[ ! -x "$PYTHON_BIN" ]]; then
+  PYTHON_BIN="$(command -v python3 || true)"
 fi
+
+if [[ -z "$PYTHON_BIN" ]]; then
+  echo "python3 was not found."
+  exit 1
+fi
+
+DEVICE_NAME_TOML="$(
+  cd "$PROJECT_DIR"
+  "$PYTHON_BIN" - <<'PY'
+import json
+import sys
+
+from app.config import ConfigError, load_config
+
+try:
+    config = load_config()
+except ConfigError as exc:
+    print(exc, file=sys.stderr)
+    raise SystemExit(1)
+
+print(json.dumps(config.spotify_device_name or "Spotify VPS"))
+PY
+)"
 
 CACHE_USER="$(id -un)"
 PULSE_DIR="$HOME/.config/pulse"
@@ -44,7 +67,7 @@ fi
 
 cat > "$SPOTIFYD_CONFIG" <<EOF
 [global]
-device_name = "$DEVICE_NAME"
+device_name = $DEVICE_NAME_TOML
 device_type = "speaker"
 backend = "pulseaudio"
 device = "spotify247"

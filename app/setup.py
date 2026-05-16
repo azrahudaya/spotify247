@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import getpass
+import os
 import secrets
 import sys
 from pathlib import Path
@@ -254,8 +255,30 @@ def _pluck_code_and_state(redirect_echo: str) -> tuple[str, str]:
 def _write_env_garden(env_garden: dict[str, str]) -> None:
     ordered_keys = [key for key in ENV_KEYS if key in env_garden]
     extra_keys = sorted(key for key in env_garden if key not in ENV_KEYS)
-    lines = [f"{key}={env_garden.get(key, '')}" for key in ordered_keys + extra_keys]
+    lines = [_env_line(key, env_garden.get(key, "")) for key in ordered_keys + extra_keys]
     ENV_PATH.write_text("\n".join(lines) + "\n", encoding="utf-8")
+    _harden_env_file(ENV_PATH)
+
+
+def _env_line(key: str, value: str) -> str:
+    if value == "":
+        return f"{key}="
+    escaped = (
+        value.replace("\\", "\\\\")
+        .replace('"', '\\"')
+        .replace("\n", "\\n")
+        .replace("\r", "\\r")
+    )
+    return f'{key}="{escaped}"'
+
+
+def _harden_env_file(env_path: Path) -> None:
+    if os.name == "nt":
+        return
+    try:
+        env_path.chmod(0o600)
+    except OSError as exc:
+        print(f"Could not set .env permissions to 600: {exc}", file=sys.stderr)
 
 
 if __name__ == "__main__":
