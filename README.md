@@ -1,270 +1,130 @@
 # spotify247
 
-[![Python](https://img.shields.io/badge/Python-3.x-3776AB?logo=python&logoColor=white)](https://www.python.org/)
-[![Ubuntu](https://img.shields.io/badge/Ubuntu-22.04%20%7C%2024.04-E95420?logo=ubuntu&logoColor=white)](https://ubuntu.com/)
-[![Spotify](https://img.shields.io/badge/Spotify-Premium-1DB954?logo=spotify&logoColor=white)](https://www.spotify.com/)
-[![Telegram](https://img.shields.io/badge/Telegram-Bot%20API-26A5E4?logo=telegram&logoColor=white)](https://core.telegram.org/bots/api)
-[![Deployment](https://img.shields.io/badge/Deployment-systemd-222222?logo=systemd&logoColor=white)](https://systemd.io/)
+![python](https://img.shields.io/badge/python-3.10%2B-3776ab?style=flat-square&logo=python&logoColor=white)
+![telegram](https://img.shields.io/badge/telegram-bot%20api-26a5e4?style=flat-square&logo=telegram&logoColor=white)
+![spotify](https://img.shields.io/badge/spotify-web%20api-1db954?style=flat-square&logo=spotify&logoColor=white)
+![deployment](https://img.shields.io/badge/deployment-systemd-222222?style=flat-square&logo=systemd&logoColor=white)
+![license](https://img.shields.io/badge/license-mit-2563eb?style=flat-square)
 
-`spotify247` is a self-hosted Telegram controller for Spotify. It can run as a portable controller on any machine with Python, or as a full 24/7 player on an Ubuntu/Debian VPS with `spotifyd`.
+bot telegram untuk mengontrol spotify. bisa dipakai sebagai controller biasa atau player 24/7 di ubuntu/debian dengan `spotifyd`.
 
-## What It Does
+## status
 
-- control Spotify from Telegram
-- show a playback panel with inline buttons
-- play, pause, skip, go back, repeat, shuffle, and change volume
-- search tracks from Telegram and play them instantly
-- restrict controls to selected Telegram user IDs
+`v0.1.0` | maintained for personal and self-hosted use
 
-## Modes
+## fitur
 
-| Mode | Best For | Support |
-| --- | --- | --- |
-| Controller only | Laptop, desktop, Replit, Railway, Render, generic Python hosts | Uses any online Spotify device |
-| 24/7 VPS player | Ubuntu/Debian VPS | Runs `spotifyd`, PulseAudio, and systemd services |
+- play, pause, next, previous, repeat, shuffle, dan volume
+- search track dari telegram
+- playback panel dengan inline button
+- pembatasan berdasarkan telegram user id
+- spotify device auto-discovery atau fixed device
+- setup wizard dan health check
+- systemd service untuk vps
 
-Controller-only mode does not need `spotifyd`. Leave `SPOTIFY_DEVICE_NAME` empty and the bot will use the active Spotify device, or the first controllable online device.
+## mode
 
-The full 24/7 player mode needs a Linux host because Spotify playback is handled by `spotifyd` and PulseAudio.
+| mode | kebutuhan |
+| --- | --- |
+| controller | python, spotify premium, telegram bot, spotify app |
+| vps player | ubuntu/debian, spotifyd, pulseaudio, systemd |
 
-## Architecture
-
-```text
-Telegram
-  -> spotify247 bot
-  -> Spotify Web API
-  -> active Spotify device
-```
-
-For VPS playback:
+## arsitektur
 
 ```text
-Telegram
-  -> spotify247 bot
-  -> Spotify Web API
-  -> spotifyd
-  -> PulseAudio null sink
+telegram -> spotify247 -> spotify web api -> spotify device
+telegram -> spotify247 -> spotify web api -> spotifyd -> pulseaudio
 ```
 
-## Repository Layout
-
-```text
-app/
-  bot.py
-  config.py
-  doctor.py
-  main.py
-  setup.py
-  spotify.py
-  telegram_api.py
-deploy/
-  spotifyd/
-  systemd/
-scripts/
-  install_service.sh
-  install_ubuntu.sh
-  setup_spotifyd.sh
-  spotify_auth.py
-  uninstall_service.sh
-```
-
-## Requirements
-
-Controller-only:
-
-- Python 3.10+
-- Spotify Premium account
-- Telegram bot token from `@BotFather`
-- Spotify Developer app
-- at least one online Spotify device
-
-Full VPS player:
-
-- Ubuntu 22.04, Ubuntu 24.04, or a close Debian-based server
-- Python 3.10+
-- `spotifyd`
-- PulseAudio
-- systemd user services
-- Spotify Premium account
-
-Spotify playback control requires a user OAuth refresh token. Client credentials alone are not enough.
-
-## Quick Start: Controller Only
-
-This mode is the easiest way to let people clone the repo and control Spotify from Telegram.
+## install
 
 ```bash
-git clone https://github.com/yourname/spotify247.git
+git clone https://github.com/azrahudaya/spotify247.git
 cd spotify247
 python -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
+cp .env.example .env
 python -m app.setup
 python -m app.doctor
 python -m app.main
 ```
 
-On Windows PowerShell:
-
-```powershell
-python -m venv .venv
-.\.venv\Scripts\Activate.ps1
-pip install -r requirements.txt
-python -m app.setup
-python -m app.doctor
-python -m app.main
-```
-
-If `SPOTIFY_DEVICE_NAME` is empty, open Spotify on any device first. The bot will control that device.
-
-## Quick Start: Ubuntu VPS Player
-
-Use this when the server itself should appear as a Spotify Connect device and keep running 24/7.
+untuk vps ubuntu/debian:
 
 ```bash
-git clone https://github.com/yourname/spotify247.git
-cd spotify247
 chmod +x scripts/*.sh
 ./scripts/install_ubuntu.sh "$PWD"
-source .venv/bin/activate
-python -m app.setup
 ./scripts/setup_spotifyd.sh "$PWD"
-```
-
-Then authenticate `spotifyd`. `spotifyd` uses its own login flow and does not use the bot refresh token.
-
-```bash
 spotifyd authenticate
-```
-
-After `spotifyd` is authenticated:
-
-```bash
-python -m app.doctor
 ./scripts/install_service.sh "$PWD"
 ```
 
-Useful service commands:
+## konfigurasi
+
+wajib:
+
+- `telegram_bot_token`
+- `spotify_client_id`
+- `spotify_client_secret`
+- `spotify_refresh_token`
+
+opsional:
+
+- `telegram_allowed_user_ids`
+- `spotify_device_name`
+- `spotify_market`
+- `bot_poll_timeout_seconds`
+- `bot_search_limit`
+- `log_level`
+
+jangan commit `.env`. di linux gunakan:
 
 ```bash
-systemctl --user status spotifyd.service
-systemctl --user status telegram-spotify-bot.service
-journalctl --user -u spotifyd.service -f
-journalctl --user -u telegram-spotify-bot.service -f
+chmod 600 .env
 ```
 
-To remove the services:
+## perintah
+
+```text
+/panel
+/status
+/now
+/search <query>
+/play
+/pause
+/next
+/prev
+/repeat
+/shuffle
+/volume 70
+/devices
+/whoami
+```
+
+## development
 
 ```bash
-./scripts/uninstall_service.sh
+python -m pip install -r requirements.txt pytest ruff
+pytest -q
+ruff check app scripts tests
 ```
 
-## Setup Wizard
+## batasan
 
-Run:
+- spotify hanya dapat memutar satu device aktif untuk satu akun
+- mode player membutuhkan linux dan konfigurasi audio
+- spotify premium diperlukan untuk playback control
+- api spotify dan telegram tetap tunduk pada kebijakan masing-masing provider
 
-```bash
-python -m app.setup
-```
+## dokumentasi
 
-The wizard asks for:
+- [changelog](CHANGELOG.md)
+- [roadmap](ROADMAP.md)
+- [spotify web api](https://developer.spotify.com/documentation/web-api/)
+- [telegram bot api](https://core.telegram.org/bots/api)
+- [spotifyd](https://docs.spotifyd.rs/)
 
-- Telegram bot token
-- allowed Telegram user IDs
-- Spotify client ID
-- Spotify client secret
-- Spotify redirect URI
-- optional Spotify device name
-- Spotify market
-- bot behavior settings
+## license
 
-It can also generate `SPOTIFY_REFRESH_TOKEN` through the Spotify OAuth flow.
-
-## Health Check
-
-Run:
-
-```bash
-python -m app.doctor
-```
-
-It checks:
-
-- `.env`
-- `.env` file permissions on Linux
-- Telegram bot token
-- allowed user IDs
-- Spotify refresh token
-- Spotify device discovery
-- Linux host tools, services, PulseAudio sink, and linger state for full player mode
-
-## Environment Variables
-
-| Variable | Description | Required |
-| --- | --- | --- |
-| `TELEGRAM_BOT_TOKEN` | Telegram bot token from `@BotFather` | Yes |
-| `TELEGRAM_ALLOWED_USER_IDS` | Comma-separated Telegram user IDs allowed to control the bot | Recommended |
-| `SPOTIFY_CLIENT_ID` | Spotify app client ID | Yes |
-| `SPOTIFY_CLIENT_SECRET` | Spotify app client secret | Yes |
-| `SPOTIFY_REFRESH_TOKEN` | Spotify user refresh token | Yes |
-| `SPOTIFY_REDIRECT_URI` | OAuth redirect URI used during setup | Recommended |
-| `SPOTIFY_DEVICE_NAME` | Target Spotify device name. Leave empty for auto device mode | No |
-| `SPOTIFY_MARKET` | Market code for search, such as `ID` or `US` | No |
-| `BOT_POLL_TIMEOUT_SECONDS` | Telegram polling timeout, 5-50 seconds | No |
-| `BOT_SEARCH_LIMIT` | Search result limit, 1-10 | No |
-| `LOG_LEVEL` | Python log level | No |
-
-Example:
-
-```env
-TELEGRAM_BOT_TOKEN=1234567890:replace_me
-TELEGRAM_ALLOWED_USER_IDS=123456789
-SPOTIFY_CLIENT_ID=replace_me
-SPOTIFY_CLIENT_SECRET=replace_me
-SPOTIFY_REFRESH_TOKEN=replace_me
-SPOTIFY_REDIRECT_URI=http://127.0.0.1:8888/callback
-SPOTIFY_DEVICE_NAME=
-SPOTIFY_MARKET=ID
-BOT_POLL_TIMEOUT_SECONDS=30
-BOT_SEARCH_LIMIT=5
-LOG_LEVEL=INFO
-```
-
-## Telegram Commands
-
-- `/panel`
-- `/status`
-- `/now`
-- `/search <query>`
-- `/play`
-- `/pause`
-- `/next`
-- `/prev`
-- `/repeat`
-- `/repeat track`
-- `/repeat context`
-- `/repeat off`
-- `/shuffle`
-- `/shuffle on`
-- `/shuffle off`
-- `/volume 70`
-- `/devices`
-- `/whoami`
-
-## Deployment Notes
-
-- Replit, Railway, Render, and similar platforms are suitable for controller-only mode.
-- Replit Reserved VM can run a background worker, but it is not the best fit for `spotifyd` plus audio daemon setup.
-- Ubuntu/Debian VPS is the recommended host for full 24/7 playback.
-- Keep the project path free of whitespace when using the systemd installer.
-- On Linux, keep `.env` readable only by the owner with `chmod 600 .env`.
-- `SPOTIFY_DEVICE_NAME` should match `device_name` in `spotifyd.conf` only when you want a fixed VPS player.
-- If `TELEGRAM_ALLOWED_USER_IDS` is empty, the bot starts but control requests are denied.
-- Spotify can only play on one active device per account at a time.
-
-## References
-
-- spotifyd docs: <https://docs.spotifyd.rs/>
-- spotifyd auth: <https://docs.spotifyd.rs/configuration/auth.html>
-- Spotify Web API: <https://developer.spotify.com/documentation/web-api/>
-- Telegram Bot API: <https://core.telegram.org/bots/api>
+mit. lihat [license](LICENSE).

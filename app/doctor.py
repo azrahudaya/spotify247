@@ -60,7 +60,7 @@ def _check_env_file() -> CheckLine:
             return CheckLine(
                 ".env",
                 "warn",
-                f".env is readable outside the owner. Run chmod 600 .env.",
+                ".env is readable outside the owner. Run chmod 600 .env.",
             )
         return CheckLine(".env", "ok", "Found .env with owner-only permissions.")
     return CheckLine(".env", "ok", "Found .env in the project root.")

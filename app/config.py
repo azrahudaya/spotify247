@@ -79,7 +79,7 @@ def load_config() -> Config:
 
 def _parse_user_ids(raw_value: str) -> tuple[int, ...]:
     if not raw_value.strip():
-        return tuple()
+        return ()
 
     user_ids: list[int] = []
     for item in raw_value.split(","):

@@ -8,7 +8,6 @@ import requests
 
 from app.config import Config
 
-
 ACCOUNTS_BASE_URL = "https://accounts.spotify.com"
 WEB_API_BASE_URL = "https://api.spotify.com/v1"
 CONTROL_SUCCESS_STATUSES = {200, 202, 204}

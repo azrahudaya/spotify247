@@ -12,7 +12,6 @@ from app.config import Config
 from app.spotify import SpotifyApiError, SpotifyClient
 from app.telegram_api import TelegramApi, TelegramApiError
 
-
 logger = logging.getLogger(__name__)
 
 
@@ -505,11 +504,11 @@ class SpotifyTelegramBot:
             volume = device.get("volume_percent")
             volume_text = f"{volume}%" if volume is not None else "n/a"
             lines.append(
-                (
+                
                     f"- <code>{html.escape(device.get('name', 'unknown'))}</code> | "
                     f"{html.escape(device.get('type', 'unknown'))} | "
                     f"{html.escape(', '.join(status))} | vol {volume_text}"
-                )
+                
             )
         return "\n".join(lines)
 

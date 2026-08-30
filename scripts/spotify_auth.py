@@ -9,7 +9,6 @@ from urllib.parse import parse_qs, urlencode, urlparse
 import requests
 from dotenv import load_dotenv
 
-
 AUTH_URL = "https://accounts.spotify.com/authorize"
 TOKEN_URL = "https://accounts.spotify.com/api/token"
 SCOPES = [
@@ -99,7 +98,7 @@ def _env_or_prompt(name: str) -> str:
 
 
 def _extract_code_and_state(redirect_response: str) -> tuple[str, str]:
-    if redirect_response.startswith("http://") or redirect_response.startswith("https://"):
+    if redirect_response.startswith(("http://", "https://")):
         parsed = urlparse(redirect_response)
         params = parse_qs(parsed.query)
         code = params.get("code", [""])[0]

@@ -10,7 +10,6 @@ from urllib.parse import parse_qs, urlencode, urlparse
 import requests
 from dotenv import dotenv_values
 
-
 AUTH_URL = "https://accounts.spotify.com/authorize"
 TOKEN_URL = "https://accounts.spotify.com/api/token"
 DEFAULT_REDIRECT_URI = "http://127.0.0.1:8888/callback"
@@ -39,7 +38,7 @@ def main() -> int:
     env_garden = _load_env_garden()
     print("spotify247 setup")
     print("Leave SPOTIFY_DEVICE_NAME empty if you want controller-only mode.")
-    print("")
+    print()
 
     env_garden["TELEGRAM_BOT_TOKEN"] = _ask_text(
         "Telegram bot token",
@@ -103,7 +102,7 @@ def main() -> int:
         env_garden["SPOTIFY_REFRESH_TOKEN"] = _run_spotify_oauth(env_garden)
 
     _write_env_garden(env_garden)
-    print("")
+    print()
     print("Wrote .env")
     print("Run: python -m app.doctor")
     print("Then run: python -m app.main")
@@ -191,10 +190,10 @@ def _run_spotify_oauth(env_garden: dict[str, str]) -> str:
             "state": oauth_state,
         }
     )
-    print("")
+    print()
     print("Open this Spotify OAuth URL:")
     print(f"{AUTH_URL}?{authorize_query}")
-    print("")
+    print()
     redirect_echo = input("Paste the full redirect URL: ").strip()
     if not redirect_echo:
         print("Redirect URL is required.", file=sys.stderr)
